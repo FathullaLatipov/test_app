@@ -1,131 +1,223 @@
 {% extends 'base.html' %}
+{% load test %}
 
 {% block content %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<div class="container mx-auto px-4 py-8">
-    <!-- Timer Section -->
+<div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4">
+    <!-- Header -->
+    <div class="w-full max-w-4xl mb-6 flex justify-between items-center bg-white shadow-lg rounded-lg p-4">
+        <!-- Logo (Left) -->
+        <div class="flex items-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 {% if current_language == 'uz' %}animate-pulse{% endif %}">
+                Тесты.уз
+            </h1>
+        </div>
 
-    <div class="mb-6 flex justify-between items-center">
-        <h1 class="text-3xl font-bold">{% if current_language == 'uz' %}Тестлар.уз{% else %}Тесты.уз{% endif %}</h1>
+        <!-- Hamburger Menu (Right) for Mobile -->
+        <div class="md:hidden">
+            <button id="menu-btn" class="focus:outline-none">
+                <svg class="h-6 w-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+            <div id="menu" class="hidden absolute right-4 bg-white shadow-lg rounded-lg p-4 mt-2 w-48 z-10 opacity-0 transition-opacity duration-300 ease-in-out">
+                <a href="?lang=uz&q={{current_question}}" class="flex items-center px-3 py-2 text-white bg-blue-600 rounded-lg mb-2 hover:bg-blue-700 transition-colors duration-200 {% if current_language == 'uz' %}font-bold{% endif %}">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18m-9 7h9"></path>
+                    </svg>
+                    O'zbek
+                </a>
+                <a href="?lang=ru&q={{current_question}}" class="flex items-center px-3 py-2 text-gray-800 bg-gray-200 rounded-lg mb-2 hover:bg-gray-300 transition-colors duration-200 {% if current_language == 'ru' %}font-bold{% endif %}">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18m-9 7h9"></path>
+                    </svg>
+                    Русский
+                </a>
+                <a href="{% url 'logout' %}" class="flex items-center px-3 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    Выйти
+                </a>
+            </div>
+        </div>
 
-
-
-        <div class="language-selector">
-            <a href="?lang=uz" class="px-4 py-2 {% if current_language == 'uz' %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %} rounded">O'zbek</a>
-            <a href="?lang=ru" class="px-4 py-2 {% if current_language == 'ru' %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %} rounded">Русский</a>
-            <a href="{% url 'logout' %}">Выйти</a>
+        <!-- Desktop Menu (Right) -->
+        <div class="hidden md:flex md:space-x-2">
+            <a href="?lang=uz&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg {% if current_language == 'uz' %}font-bold{% endif %}">O'zbek</a>
+            <a href="?lang=ru&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-gray-200 text-gray-800 rounded-lg {% if current_language == 'ru' %}font-bold{% endif %}">Русский</a>
+            <a href="{% url 'logout' %}" class="px-3 py-2 md:px-4 md:py-2 bg-red-600 text-white rounded-lg">Выйти</a>
         </div>
     </div>
-    {% if user.is_authenticated %}
-        <h3>{{ user.first_name }}</h3>
-    <h3>{{ user }}</h3>
-    {% else %}
-        <h3>Пользователь не найден</h3>
-    {% endif %}
 
-    {% if questions %}
-      <div class="mb-6 text-center">
-        <h2 class="text-2xl font-bold text-gray-800">Таймер: <span id="timer" class="text-blue-600">01:00:00</span></h2>
+    <!-- Timer -->
+    <div class="mb-4 text-center w-full max-w-2xl">
+        <h2 class="text-xl md:text-2xl font-semibold text-gray-700 bg-white shadow-md rounded-lg px-3 py-2">
+            Таймер: <span id="timer" class="text-blue-600 font-mono animate-pulse">{{ initial_time|time:"H:i:s" }}</span>
+        </h2>
     </div>
 
-        {% for question in questions %}
-            <div class="mb-8 p-6 bg-white rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">{{ question.text }}</h2>
+    <!-- Question -->
+    {% if question %}
+    <div class="w-full max-w-2xl bg-white shadow-2xl rounded-xl p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-900 border-b-2 border-blue-200 pb-2">
+            Тест {{ current_question }}: {{ question.text }}
+        </h2>
 
-                <div class="space-y-3">
-    {% with choice=question.choices.first %}
-        {% if choice %}
-            <form class="mx-auto max-w-md">
-                <fieldset class="space-y-4">
-                    <div class="flex items-center">
-                        <input type="radio" id="a_{{ question.id }}" name="answer_{{ question.id }}" value="a" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="a_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'a' %}border-2 border-green-500{% endif %}">
-                            A) {{ choice.a }}
-                        </label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="radio" id="b_{{ question.id }}" name="answer_{{ question.id }}" value="b" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="b_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'b' %}border-2 border-green-500{% endif %}">
-                            B) {{ choice.b }}
-                        </label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="radio" id="c_{{ question.id }}" name="answer_{{ question.id }}" value="c" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="c_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'c' %}border-2 border-green-500{% endif %}">
-                            C) {{ choice.c }}
-                        </label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="radio" id="d_{{ question.id }}" name="answer_{{ question.id }}" value="d" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="d_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'd' %}border-2 border-green-500{% endif %}">
-                            D) {{ choice.d }}
-                        </label>
-                    </div>
-                </fieldset>
-            </form>
-        {% else %}
-            <p class="text-gray-500">Варианты ответов отсутствуют.</p>
-        {% endif %}
-    {% endwith %}
-</div>
-            </div>
-        {% endfor %}
+        <form id="quizForm" method="POST" action="{% url 'home' %}">
+            {% csrf_token %}
+            <input type="hidden" name="question_id" value="{{ question.id }}">
+            <input type="hidden" name="submit_quiz" value="true">
+            <input type="hidden" id="is_last_question" value="{% if current_question == total_questions %}true{% else %}false{% endif %}">
+            <fieldset class="space-y-3 md:space-y-4">
+                {% with choice=question.choices.first %}
+                    {% if choice %}
+                        {% for option in 'abcd' %}
+                        <div class="flex items-center">
+                            <input type="radio"
+                                   id="{{ option }}_{{ question.id }}"
+                                   name="answer"
+                                   value="{{ option }}"
+                                   class="h-4 md:h-5 w-4 md:w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                   data-text="{{ choice|getattribute:option }}"
+                                   {% if answers|getattribute:"answer_"|add:question.id|stringformat:"s" == option %}checked{% endif %}>
+                            <label for="{{ option }}_{{ question.id }}"
+                                   class="ml-2 md:ml-3 block text-base md:text-lg font-medium text-gray-700 p-2 md:p-3 bg-gray-50 rounded-lg shadow-sm answer-label w-full"
+                                   data-correct="{% if choice.is_correct == option %}true{% else %}false{% endif %}">
+                                <span class="text-blue-600 font-semibold">{{ option|upper }})</span> {{ choice|getattribute:option }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-red-500 text-center font-semibold text-base md:text-lg">Для этого вопроса нет вариантов ответов</p>
+                    {% endif %}
+                {% endwith %}
+            </fieldset>
+        </form>
+
+        <!-- Correct Answer Display -->
+        <div id="correct-answer" class="mt-3 md:mt-4 hidden">
+            <p class="text-green-600 font-semibold text-center bg-green-50 p-2 md:p-2 rounded-lg text-base md:text-lg">Правильный ответ: <span id="correct-option" class="font-bold"></span></p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="w-full max-w-2xl mt-4 md:mt-6 flex justify-between items-center">
+        <a href="?lang={{current_language}}&q={{current_question|add:-1}}"
+           class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == 1 %}opacity-50 cursor-not-allowed{% endif %}">
+            Previous
+        </a>
+        <span class="text-lg md:text-xl font-medium text-gray-700">{{ current_question }} / {{ total_questions }}</span>
+        <a href="?lang={{current_language}}&q={{current_question|add:1}}"
+           class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == total_questions %}opacity-50 cursor-not-allowed{% endif %}">
+            Next
+        </a>
+    </div>
     {% else %}
-        <p class="text-gray-500">Вопросы отсутствуют.</p>
+        <p class="text-gray-500 text-center text-lg md:text-xl">Вопросы отсутствуют.</p>
     {% endif %}
 </div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            form.addEventListener('submit', (e) => {
+document.addEventListener('DOMContentLoaded', () => {
+    const totalTime = 3600; // 1 hour in seconds
+    let startTime = localStorage.getItem('quizStartTime');
+    if (!startTime) {
+        startTime = new Date().getTime();
+        localStorage.setItem('quizStartTime', startTime);
+    }
+    const timerElement = document.getElementById('timer');
+    const form = document.getElementById('quizForm');
+    const radios = document.querySelectorAll('input[type="radio"]');
+    let hasSelected = false;
+
+    const updateTimer = () => {
+        const currentTime = new Date().getTime();
+        const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+        const timeLeft = totalTime - elapsedTime;
+        if (timeLeft > 0) {
+            const hours = Math.floor(timeLeft / 3600);
+            const minutes = Math.floor((timeLeft % 3600) / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        } else {
+            clearInterval(timer);
+            timerElement.textContent = "Время истекло!";
+            timerElement.classList.add('text-red-600');
+            form.submit();
+        }
+    };
+
+    const timer = setInterval(updateTimer, 1000);
+    updateTimer(); // Initial display
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (hasSelected) {
                 e.preventDefault();
-                const selectedOption = form.querySelector('input[type="radio"]:checked');
-                if (selectedOption) {
-                    const questionId = form.name.split('_')[1];
-                    const selectedValue = selectedOption.value;
-                    console.log(`Question ${questionId} selected: ${selectedValue}`);
-                    // Here you can add AJAX to send the selection to the server or check correctness
-                } else {
-                    alert('Пожалуйста, выберите ответ.');
-                }
-            });
-        });
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        let timeLeft = 3600; // 1 hour in seconds (60 * 60)
-        const timerElement = document.getElementById('timer');
-
-        const timer = setInterval(() => {
-            if (timeLeft > 0) {
-                timeLeft--;
-                const hours = Math.floor(timeLeft / 3600);
-                const minutes = Math.floor((timeLeft % 3600) / 60);
-                const seconds = timeLeft % 60;
-                timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            } else {
-                clearInterval(timer);
-                timerElement.textContent = "Время истекло!";
-                document.getElementById('quizForm').submit(); // Automatically submit the form when time runs out
+                return;
             }
-        }, 1000);
 
-        // Optional: Handle form submission manually if needed
-        document.getElementById('quizForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const answers = {};
-            formData.forEach((value, key) => {
-                if (key.startsWith('answer_')) {
-                    answers[key] = value;
+            hasSelected = true;
+            const selectedValue = e.target.value;
+            const questionId = e.target.id.split('_')[1];
+
+            // AJAX to save answer
+            fetch('{% url "save_answer" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `question_id=${questionId}&answer=${selectedValue}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const correctAnswerDiv = document.getElementById('correct-answer');
+                    const correctOptionSpan = document.getElementById('correct-option');
+                    correctAnswerDiv.classList.remove('hidden');
+                    const correctLabel = document.querySelector(`label[data-correct="true"]`);
+                    const correctText = correctLabel.textContent.replace(/^[A-D]\)/, '').trim();
+                    correctOptionSpan.textContent = `${correctLabel.textContent.split(')')[0]}) ${correctText}`;
+
+                    document.querySelectorAll('.answer-label').forEach(label => {
+                        label.classList.remove('border-2', 'border-green-500', 'border-red-500');
+                        if (label.dataset.correct === 'true') {
+                            label.classList.add('border-2', 'border-green-500');
+                        } else if (label === e.target.nextElementSibling && label.dataset.correct !== 'true') {
+                            label.classList.add('border-2', 'border-red-500');
+                        }
+                    });
+
+                    setTimeout(() => {
+                        const isLastQuestion = document.getElementById('is_last_question').value === 'true';
+                        if (isLastQuestion) {
+                            form.submit();
+                            localStorage.clear(); // Reset for next quiz
+                        } else {
+                            window.location.href = `?lang={{current_language}}&q={{current_question|add:1}}`;
+                        }
+                    }, 1000);
                 }
-            });
-            console.log('Submitted answers:', answers);
-            // Here you can send the form data to the server via AJAX or let it submit normally
-            e.target.submit();
+            })
+            .catch(error => console.error('Error:', error));
         });
     });
+
+    const menuBtn = document.getElementById('menu-btn');
+    const menu = document.getElementById('menu');
+    menuBtn.addEventListener('click', () => {
+        menu.classList.toggle('hidden');
+        menu.style.opacity = menu.classList.contains('hidden') ? '0' : '1';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+            menu.style.opacity = '0';
+        }
+    });
+});
 </script>
 {% endblock %}

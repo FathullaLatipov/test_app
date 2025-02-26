@@ -14,6 +14,7 @@ def generate_unique_code():
             return code
 
 class Student(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, verbose_name=_('Пользователь'))  # Связь с User
     first_name = models.CharField(max_length=100, verbose_name=_('Имя'))
     last_name = models.CharField(max_length=100, verbose_name=_('Фамилия'))
     middle_name = models.CharField(max_length=100, blank=True, null=True, verbose_name=_('Отчество'))
@@ -25,6 +26,7 @@ class Student(models.Model):
         verbose_name=_('Уникальный код')
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Дата создания'))
+    score = models.IntegerField(default=0, verbose_name=_('Баллы'))
 
     def __str__(self):
         return f'{self.last_name} {self.first_name} {self.middle_name or ""} ({self.unique_code})'
@@ -32,7 +34,6 @@ class Student(models.Model):
     class Meta:
         verbose_name = _('Студент')
         verbose_name_plural = _('Студенты')
-
 # class StudentManager(BaseUserManager):
 #     """Менеджер для создания пользователей и суперпользователей"""
 #
