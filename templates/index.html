@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<div class="container mx-auto px-4 py-8">
+    <!-- Timer Section -->
+
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold">{% if current_language == 'uz' %}Тестлар.уз{% else %}Тесты.уз{% endif %}</h1>
+
+
+
+        <div class="language-selector">
+            <a href="?lang=uz" class="px-4 py-2 {% if current_language == 'uz' %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %} rounded">O'zbek</a>
+            <a href="?lang=ru" class="px-4 py-2 {% if current_language == 'ru' %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %} rounded">Русский</a>
+        </div>
+    </div>
+
+    {% if questions %}
+      <div class="mb-6 text-center">
+        <h2 class="text-2xl font-bold text-gray-800">Таймер: <span id="timer" class="text-blue-600">01:00:00</span></h2>
+    </div>
+
+        {% for question in questions %}
+            <div class="mb-8 p-6 bg-white rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">{{ question.text }}</h2>
+
+                <div class="space-y-3">
+    {% with choice=question.choices.first %}
+        {% if choice %}
+            <form class="mx-auto max-w-md">
+                <fieldset class="space-y-4">
+                    <div class="flex items-center">
+                        <input type="radio" id="a_{{ question.id }}" name="answer_{{ question.id }}" value="a" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <label for="a_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'a' %}border-2 border-green-500{% endif %}">
+                            A) {{ choice.a }}
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="b_{{ question.id }}" name="answer_{{ question.id }}" value="b" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <label for="b_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'b' %}border-2 border-green-500{% endif %}">
+                            B) {{ choice.b }}
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="c_{{ question.id }}" name="answer_{{ question.id }}" value="c" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <label for="c_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'c' %}border-2 border-green-500{% endif %}">
+                            C) {{ choice.c }}
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="d_{{ question.id }}" name="answer_{{ question.id }}" value="d" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <label for="d_{{ question.id }}" class="ml-2 block text-sm font-medium text-gray-700 p-3 bg-white rounded-lg shadow hover:bg-gray-50 {% if choice.is_correct == 'd' %}border-2 border-green-500{% endif %}">
+                            D) {{ choice.d }}
+                        </label>
+                    </div>
+                </fieldset>
+            </form>
+        {% else %}
+            <p class="text-gray-500">Варианты ответов отсутствуют.</p>
+        {% endif %}
+    {% endwith %}
+</div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-gray-500">Вопросы отсутствуют.</p>
+    {% endif %}
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedOption = form.querySelector('input[type="radio"]:checked');
+                if (selectedOption) {
+                    const questionId = form.name.split('_')[1];
+                    const selectedValue = selectedOption.value;
+                    console.log(`Question ${questionId} selected: ${selectedValue}`);
+                    // Here you can add AJAX to send the selection to the server or check correctness
+                } else {
+                    alert('Пожалуйста, выберите ответ.');
+                }
+            });
+        });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let timeLeft = 3600; // 1 hour in seconds (60 * 60)
+        const timerElement = document.getElementById('timer');
+
+        const timer = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                const hours = Math.floor(timeLeft / 3600);
+                const minutes = Math.floor((timeLeft % 3600) / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                clearInterval(timer);
+                timerElement.textContent = "Время истекло!";
+                document.getElementById('quizForm').submit(); // Automatically submit the form when time runs out
+            }
+        }, 1000);
+
+        // Optional: Handle form submission manually if needed
+        document.getElementById('quizForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const answers = {};
+            formData.forEach((value, key) => {
+                if (key.startsWith('answer_')) {
+                    answers[key] = value;
+                }
+            });
+            console.log('Submitted answers:', answers);
+            // Here you can send the form data to the server via AJAX or let it submit normally
+            e.target.submit();
+        });
+    });
+</script>
+{% endblock %}

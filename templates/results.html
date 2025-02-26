@@ -1,0 +1,30 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% trans "Results" %}</title>
+</head>
+<body>
+    <h1>{% trans "Quiz Results" %}</h1>
+    <p>{% trans "Student" %}: {{ attempt.student.full_name }}</p>
+    <p>{% trans "Code" %}: {{ attempt.student.unique_code }}</p>
+    <p>{% trans "Score" %}: {{ score }}% ({{ correct }} / {{ total }})</p>
+
+    {% for answer in answers %}
+        <div>
+            <p>{{ answer.question.text_uz }}</p>
+            {% if answer.choice %}
+                <p>{% trans "Answer" %}: {{ answer.choice.text_uz }}
+                    {% if answer.choice.is_correct %}
+                        (✔️ {% trans "Correct" %})
+                    {% else %}
+                        (❌ {% trans "Incorrect" %})
+                    {% endif %}
+                </p>
+            {% else %}
+                <p>{% trans "Skipped" %}</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>

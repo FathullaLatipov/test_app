@@ -1,0 +1,21 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <title>{% trans "Регистрация" %}</title>
+</head>
+<body>
+    <h1>{% trans "Регистрация" %}</h1>
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% trans "Зарегистрироваться" %}</button>
+    </form>
+    <p><a href="{% url 'login' %}">{% trans "Уже есть аккаунт? Войти" %}</a></p>
+</body>
+</html>

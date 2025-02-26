@@ -1,0 +1,12 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <title>{% trans "Добро пожаловать" %}</title>
+</head>
+<body>
+    <h1>{% trans "Добро пожаловать на платформу тестирования" %}</h1>
+    <a href="{% url 'login' %}">{% trans "Войти" %}</a> |
+    <a href="{% url 'register' %}">{% trans "Зарегистрироваться" %}</a>
+</body>
+</html>

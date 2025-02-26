@@ -1,0 +1,28 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <title>{% trans "Вход" %}</title>
+</head>
+<body>
+    <h1>{% trans "Вход" %}</h1>
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <p>
+            <label>{% trans "Имя пользователя" %}:</label>
+            <input type="text" name="username" required>
+        </p>
+        <p>
+            <label>{% trans "Пароль" %}:</label>
+            <input type="password" name="password" required>
+        </p>
+        <button type="submit">{% trans "Войти" %}</button>
+    </form>
+    <p><a href="{% url 'register' %}">{% trans "Нет аккаунта? Зарегистрироваться" %}</a></p>
+</body>
+</html>
