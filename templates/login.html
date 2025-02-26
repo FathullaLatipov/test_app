@@ -3,26 +3,94 @@
 <html lang="{{ lang }}">
 <head>
     <title>{% trans "Вход" %}</title>
+     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+            width: 350px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            text-align: left;
+        }
+        label {
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        p {
+            margin-top: 10px;
+        }
+        a {
+            text-decoration: none;
+            color: #007bff;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .messages {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>{% trans "Вход" %}</h1>
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-    <form method="post">
-        {% csrf_token %}
-        <p>
-            <label>{% trans "Имя пользователя" %}:</label>
-            <input type="text" name="username" required>
-        </p>
-        <p>
-            <label>{% trans "Пароль" %}:</label>
-            <input type="password" name="password" required>
-        </p>
-        <button type="submit">{% trans "Войти" %}</button>
-    </form>
-    <p><a href="{% url 'register' %}">{% trans "Нет аккаунта? Зарегистрироваться" %}</a></p>
+    <div class="container">
+        <h1>{% trans "Вход" %}</h1>
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <label for="username">{% trans "Имя" %}:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">{% trans "Пароль" %}:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">{% trans "Войти" %}</button>
+        </form>
+        <p><a href="{% url 'register' %}">{% trans "Нет аккаунта? Зарегистрироваться" %}</a></p>
+    </div>
 </body>
 </html>

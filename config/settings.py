@@ -116,6 +116,14 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/quiz/start/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+
+# AUTHENTICATION_BACKENDS = [
+#     'user.auth_backend.StudentAuthBackend',  # Замените 'your_app' на имя приложения
+#     'django.contrib.auth.backends.ModelBackend',
+# ]
+#
+# AUTH_USER_MODEL = 'user.Student'
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 

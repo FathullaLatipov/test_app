@@ -1,8 +1,10 @@
 # admin.py
 from django.contrib import admin
-from .models import Question, Choice
+from .models import Question, Choice, Student
 from .forms import ExcelImportForm
 import pandas as pd
+
+admin.site.register(Student)
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
@@ -31,6 +33,8 @@ class QuestionAdmin(admin.ModelAdmin):
                     text=row['question_text'],
                     language=row['language']
                 )
+                a = Question.objects.all()
+                print(a)
                 Choice.objects.create(
                     question=question,
                     a=row['option_a'],
@@ -39,6 +43,8 @@ class QuestionAdmin(admin.ModelAdmin):
                     d=row['option_d'],
                     is_correct=row['correct_option']
                 )
+                b = Choice.objects.all()
+                print(b)
             self.message_user(request, f"Импортировано {len(df)} вопросов.")
 
 @admin.register(Choice)
