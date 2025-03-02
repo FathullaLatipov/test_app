@@ -1,19 +1,17 @@
 {% extends 'base.html' %}
 {% load test %}
+{% load static %}
 
 {% block content %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4">
-    <!-- Header -->
+    <!-- Header (без изменений) {% if current_language == 'uz' %}animate-pulse{% endif %} -->
     <div class="w-full max-w-4xl mb-6 flex justify-between items-center bg-white shadow-lg rounded-lg p-4">
-        <!-- Logo (Left) -->
         <div class="flex items-center">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 {% if current_language == 'uz' %}animate-pulse{% endif %}">
-                Тесты.уз
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 }">
+                <img src="{% static 'logo.png' %}" style="width:60px" alt="">
             </h1>
         </div>
-
-        <!-- Hamburger Menu (Right) for Mobile -->
         <div class="md:hidden">
             <button id="menu-btn" class="focus:outline-none">
                 <svg class="h-6 w-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -41,8 +39,6 @@
                 </a>
             </div>
         </div>
-
-        <!-- Desktop Menu (Right) -->
         <div class="hidden md:flex md:space-x-2">
             <a href="?lang=uz&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg {% if current_language == 'uz' %}font-bold{% endif %}">O'zbek</a>
             <a href="?lang=ru&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-gray-200 text-gray-800 rounded-lg {% if current_language == 'ru' %}font-bold{% endif %}">Русский</a>
@@ -50,9 +46,11 @@
         </div>
     </div>
 
-    <!-- Timer -->
+    <!-- Timer (без изменений) -->
     <div class="mb-4 text-center w-full max-w-2xl">
         <h2 class="text-xl md:text-2xl font-semibold text-gray-700 bg-white shadow-md rounded-lg px-3 py-2">
+            Добро пожаловать {{ user.username }}
+            <br>
             Таймер: <span id="timer" class="text-blue-600 font-mono animate-pulse">{{ initial_time|time:"H:i:s" }}</span>
         </h2>
     </div>
@@ -70,47 +68,46 @@
             <input type="hidden" name="submit_quiz" value="true">
             <input type="hidden" id="is_last_question" value="{% if current_question == total_questions %}true{% else %}false{% endif %}">
             <fieldset class="space-y-3 md:space-y-4">
-                {% with choice=question.choices.first %}
-                    {% if choice %}
-                        {% for option in 'abcd' %}
-                        <div class="flex items-center">
-                            <input type="radio"
-                                   id="{{ option }}_{{ question.id }}"
-                                   name="answer"
-                                   value="{{ option }}"
-                                   class="h-4 md:h-5 w-4 md:w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                   data-text="{{ choice|getattribute:option }}"
-                                   {% if answers|getattribute:"answer_"|add:question.id|stringformat:"s" == option %}checked{% endif %}>
-                            <label for="{{ option }}_{{ question.id }}"
-                                   class="ml-2 md:ml-3 block text-base md:text-lg font-medium text-gray-700 p-2 md:p-3 bg-gray-50 rounded-lg shadow-sm answer-label w-full"
-                                   data-correct="{% if choice.is_correct == option %}true{% else %}false{% endif %}">
-                                <span class="text-blue-600 font-semibold">{{ option|upper }})</span> {{ choice|getattribute:option }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-red-500 text-center font-semibold text-base md:text-lg">Для этого вопроса нет вариантов ответов</p>
-                    {% endif %}
-                {% endwith %}
+              {% with choice=question.choices.first %}
+                {% if choice %}
+                    {% for option in 'abcd' %}
+                    <div class="flex items-center">
+                        <input type="radio"
+                               id="{{ option }}_{{ question.id }}"
+                               name="answer"
+                               value="{{ option }}"
+                               class="h-4 md:h-5 w-4 md:w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                               data-text="{{ choice|getattribute:option }}"
+                               {% if selected_answer == option %}checked{% endif %}>
+                        <label for="{{ option }}_{{ question.id }}"
+                               class="ml-2 md:ml-3 block text-base md:text-lg font-medium text-gray-700 p-2 md:p-3 bg-gray-50 rounded-lg shadow-sm answer-label w-full {% if selected_answer == option %}bg-gray-300{% endif %}"
+                               data-correct="{% if choice.is_correct == option %}true{% else %}false{% endif %}">
+                            <span class="text-blue-600 font-semibold">{{ option|upper }})</span> {{ choice|getattribute:option }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-red-500 text-center font-semibold text-base md:text-lg">Для этого вопроса нет вариантов ответов</p>
+                {% endif %}
+            {% endwith %}
             </fieldset>
+            <!-- Кнопка для ручной отправки на последнем вопросе -->
+            {% if current_question == total_questions %}
+            <button type="submit" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Завершить тест</button>
+            {% endif %}
         </form>
-
-        <!-- Correct Answer Display -->
-        <div id="correct-answer" class="mt-3 md:mt-4 hidden">
-            <p class="text-green-600 font-semibold text-center bg-green-50 p-2 md:p-2 rounded-lg text-base md:text-lg">Правильный ответ: <span id="correct-option" class="font-bold"></span></p>
-        </div>
     </div>
 
-    <!-- Navigation -->
+    <!-- Navigation (без изменений) -->
     <div class="w-full max-w-2xl mt-4 md:mt-6 flex justify-between items-center">
         <a href="?lang={{current_language}}&q={{current_question|add:-1}}"
            class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == 1 %}opacity-50 cursor-not-allowed{% endif %}">
-            Previous
+            Предыдущий
         </a>
         <span class="text-lg md:text-xl font-medium text-gray-700">{{ current_question }} / {{ total_questions }}</span>
         <a href="?lang={{current_language}}&q={{current_question|add:1}}"
            class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == total_questions %}opacity-50 cursor-not-allowed{% endif %}">
-            Next
+            Следующий
         </a>
     </div>
     {% else %}
@@ -120,16 +117,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const totalTime = 3600; // 1 hour in seconds
+    const totalTime = 3600; // 1 час в секундах
     let startTime = localStorage.getItem('quizStartTime');
-    if (!startTime) {
-        startTime = new Date().getTime();
-        localStorage.setItem('quizStartTime', startTime);
-    }
     const timerElement = document.getElementById('timer');
     const form = document.getElementById('quizForm');
     const radios = document.querySelectorAll('input[type="radio"]');
-    let hasSelected = false;
+    const submitButton = document.querySelector('button[type="submit"]'); // Находим кнопку "Завершить тест"
+
+    // Сброс таймера при первой загрузке или если время устарело
+    if (!startTime || (new Date().getTime() - parseInt(startTime) > totalTime * 1000)) {
+        localStorage.removeItem('quizStartTime');
+        startTime = null;
+    }
+
+    // Сброс таймера, если есть параметр timer_reset
+    if (window.location.search.includes('timer_reset=true')) {
+        localStorage.removeItem('quizStartTime');
+        startTime = null;
+    }
+
+    if (!startTime) {
+        startTime = new Date().getTime();
+        localStorage.setItem('quizStartTime', startTime);
+        console.log('Timer reset, new start time:', startTime);
+    } else {
+        console.log('Existing start time:', startTime);
+    }
 
     const updateTimer = () => {
         const currentTime = new Date().getTime();
@@ -144,25 +157,29 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(timer);
             timerElement.textContent = "Время истекло!";
             timerElement.classList.add('text-red-600');
-            form.submit();
+            const hasAnswers = Object.keys({% if answers %}{{ answers|safe }}{% else %}{}{% endif %}).length > 0;
+            if (hasAnswers) {
+                alert("Время истекло. Завершите тест, нажав на кнопку 'Завершить тест'.");
+            } else {
+                alert("Вы не ответили ни на один вопрос. Тест не будет отправлен.");
+            }
         }
     };
 
     const timer = setInterval(updateTimer, 1000);
-    updateTimer(); // Initial display
+    updateTimer();
 
     radios.forEach(radio => {
         radio.addEventListener('change', (e) => {
-            if (hasSelected) {
-                e.preventDefault();
-                return;
-            }
-
-            hasSelected = true;
             const selectedValue = e.target.value;
             const questionId = e.target.id.split('_')[1];
 
-            // AJAX to save answer
+            // Убираем старые выделения и добавляем серый фон для выбранного
+            document.querySelectorAll('.answer-label').forEach(label => {
+                label.classList.remove('bg-gray-300'); // Сбрасываем фон у всех
+            });
+            e.target.nextElementSibling.classList.add('bg-gray-300'); // Добавляем серый фон выбранному
+
             fetch('{% url "save_answer" %}', {
                 method: 'POST',
                 headers: {
@@ -174,35 +191,25 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    const correctAnswerDiv = document.getElementById('correct-answer');
-                    const correctOptionSpan = document.getElementById('correct-option');
-                    correctAnswerDiv.classList.remove('hidden');
-                    const correctLabel = document.querySelector(`label[data-correct="true"]`);
-                    const correctText = correctLabel.textContent.replace(/^[A-D]\)/, '').trim();
-                    correctOptionSpan.textContent = `${correctLabel.textContent.split(')')[0]}) ${correctText}`;
-
-                    document.querySelectorAll('.answer-label').forEach(label => {
-                        label.classList.remove('border-2', 'border-green-500', 'border-red-500');
-                        if (label.dataset.correct === 'true') {
-                            label.classList.add('border-2', 'border-green-500');
-                        } else if (label === e.target.nextElementSibling && label.dataset.correct !== 'true') {
-                            label.classList.add('border-2', 'border-red-500');
-                        }
-                    });
-
-                    setTimeout(() => {
-                        const isLastQuestion = document.getElementById('is_last_question').value === 'true';
-                        if (isLastQuestion) {
-                            form.submit();
-                            localStorage.clear(); // Reset for next quiz
-                        } else {
-                            window.location.href = `?lang={{current_language}}&q={{current_question|add:1}}`;
-                        }
-                    }, 1000);
+                    console.log(`Saved answer for question ${questionId}: ${selectedValue}`);
                 }
             })
             .catch(error => console.error('Error:', error));
         });
+    });
+
+    // Обработчики для кнопок "Previous" и "Next" (без изменений)
+    document.querySelectorAll('a').forEach(link => {
+        if (link.textContent === 'Previous' || link.textContent === 'Next') {
+            link.addEventListener('click', (e) => {
+                if (link.classList.contains('opacity-50')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                window.location.href = link.href;
+            });
+        }
     });
 
     const menuBtn = document.getElementById('menu-btn');

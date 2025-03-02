@@ -4,7 +4,11 @@ from .models import Question, Choice, Student
 from .forms import ExcelImportForm
 import pandas as pd
 
-admin.site.register(Student)
+# admin.site.register(Student)
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    search_fields = ['unique_code']
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):

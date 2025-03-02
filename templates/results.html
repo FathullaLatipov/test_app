@@ -1,14 +1,45 @@
 {% extends 'base.html' %}
-{% load test %}
 
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-2xl bg-white shadow-2xl rounded-xl p-6 text-center">
-        <h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-900">Результат теста</h2>
-        <p class="text-xl md:text-2xl font-semibold text-gray-700 mb-4">Добро пожаловать, {{ user.username }}!</p>
-        <p class="text-2xl md:text-3xl font-bold text-blue-600 mb-6">Ваш счет: {{ score }} из 50</p>
-        <a href="{% url 'home' %}?lang={{ current_language }}&timer_reset=1" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold">Пройти тест заново</a>
+<div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4">
+    <div class="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Результаты теста</h1>
+
+        <!-- Общий результат -->
+        <div class="mb-6">
+            <p class="text-xl font-semibold text-gray-700">
+                Ваш результат: <span class="text-blue-600">{{ score|floatformat:0 }}</span> из 50
+            </p>
+            <p class="text-lg text-gray-600">
+                Всего вопросов: {{ total_questions }}
+            </p>
+        </div>
+
+        <!-- Детали ответов -->
+        {% if user_answers %}
+        <div class="space-y-4">
+            {% for answer in user_answers %}
+            <div class="p-4 bg-gray-50 rounded-lg shadow-sm">
+                <p class="text-lg font-medium text-gray-800">{{ answer.question_text }}</p>
+                <p class="text-base">
+                    Ваш ответ: <span class="font-semibold {% if answer.is_correct %}text-green-600{% else %}text-red-600{% endif %}">{{ answer.user_answer|upper }}</span>
+                </p>
+                <p class="text-base">
+                    Правильный ответ: <span class="font-semibold text-green-600">{{ answer.correct_answer|upper }}</span>
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-lg">Вы не ответили ни на один вопрос.</p>
+        {% endif %}
+
+        <!-- Кнопка возврата -->
+        <div class="mt-6">
+            <a href="{% url 'home' %}?lang={{ current_language }}&timer_reset=true" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Начать заново
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

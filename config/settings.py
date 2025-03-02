@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-5t^o1738#3z1r5*x(&y8xngh_7ti##qc95*1o(f3_*-98$h!ro
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -117,12 +117,24 @@ LOGIN_REDIRECT_URL = '/quiz/start/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://4920-185-213-229-2.ngrok-free.app',
+]
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = True
+
 # AUTHENTICATION_BACKENDS = [
 #     'user.auth_backend.StudentAuthBackend',  # Замените 'your_app' на имя приложения
 #     'django.contrib.auth.backends.ModelBackend',
 # ]
 #
 # AUTH_USER_MODEL = 'user.Student'
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
