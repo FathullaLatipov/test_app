@@ -39,19 +39,26 @@ def register_student(request):
 def verify_unique_code(request):
     if request.method == "POST":
         entered_code = request.POST.get("unique_code")
-        expected_code = request.session.get("expected_unique_code")
-        user_id = request.session.get("user_id")
+        expected_code = request.session.get("expected_unique_code")  # Используем .get() для безопасного доступа
+        user_id = request.session.get("user_id")  # Используем .get() для безопасного доступа
 
-        if entered_code == expected_code and user_id:
-            user = User.objects.get(id=user_id)
-            login(request, user)
-            # Очищаем сессию после успешной проверки
-            del request.session['expected_unique_code']
-            del request.session['user_id']
-            return redirect("home")
+        if entered_code and expected_code and user_id:
+            if entered_code == expected_code:
+                user = User.objects.get(id=user_id)
+                login(request, user)
+                # Удаляем сессионные данные, только если они существуют
+                if 'expected_unique_code' in request.session:
+                    del request.session['expected_unique_code']
+                if 'user_id' in request.session:
+                    del request.session['user_id']
+                return redirect("home")
+            else:
+                return render(request, "verify_unique_code.html", {
+                    "error": "Неверный уникальный код. Попробуйте снова."
+                })
         else:
             return render(request, "verify_unique_code.html", {
-                "error": "Неверный уникальный код. Попробуйте снова."
+                "error": "Сессия истекла или данные недоступны. Пожалуйста, начните регистрацию заново."
             })
     return redirect("register")
 

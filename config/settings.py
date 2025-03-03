@@ -68,10 +68,21 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASS'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 # Password validation
@@ -116,14 +127,23 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/quiz/start/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://d728-213-230-82-173.ngrok-free.app',
+    'https://52d3-213-230-116-13.ngrok-free.app',
 ]
 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = True
+
+JAZZMIN_SETTINGS = {
+    "site_title": "PCS", "site_header": "PCS", "site_brand": "PCS",
+    "login_logo": None, "login_logo_dark": None,
+    "site_icon": None, "welcome_sign": "PCS", "copyright": "PCS", "user_avatar": None,
+}
 
 # AUTHENTICATION_BACKENDS = [
 #     'user.auth_backend.StudentAuthBackend',  # Замените 'your_app' на имя приложения
@@ -133,7 +153,8 @@ CSRF_COOKIE_HTTPONLY = True
 # AUTH_USER_MODEL = 'user.Student'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1209600
+SESSION_COOKIE_AGE = 7200  # Только для HTTPS
+SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Static files (CSS, JavaScript, Images)
