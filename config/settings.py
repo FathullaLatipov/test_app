@@ -118,7 +118,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://4920-185-213-229-2.ngrok-free.app',
+    'https://d728-213-230-82-173.ngrok-free.app',
 ]
 
 CSRF_COOKIE_SECURE = False

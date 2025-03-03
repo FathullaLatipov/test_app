@@ -8,41 +8,70 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+import time
+from django.contrib import messages
 
 def register_student(request):
     if request.method == "POST":
         form = StudentRegistrationForm(request.POST)
         if form.is_valid():
-            user = User.objects.create_user(
-                username=form.cleaned_data["first_name"],  # Или другой уникальный идентификатор
-                password=form.cleaned_data["password"]
-            )
+            first_name = form.cleaned_data["first_name"]
+            password = form.cleaned_data["password"]
             student = form.save(commit=False)
-            student.user = user  # Привязываем пользователя
             student.save()
-            login(request, user)
-
-            return redirect("home")
+            unique_username = student.unique_code
+            user = User.objects.create_user(
+                username=unique_username,
+                password=password,
+                first_name=first_name
+            )
+            student.user = user
+            student.save()
+            request.session['expected_unique_code'] = student.unique_code
+            request.session['user_id'] = user.id
+            # Сбрасываем таймер для нового пользователя
+            request.session[f'timer_start_{user.id}'] = int(time.time() * 1000)  # Время в миллисекундах
+            return render(request, "verify_unique_code.html", {"form": form})
     else:
         form = StudentRegistrationForm()
     return render(request, "register.html", {"form": form})
 
+def verify_unique_code(request):
+    if request.method == "POST":
+        entered_code = request.POST.get("unique_code")
+        expected_code = request.session.get("expected_unique_code")
+        user_id = request.session.get("user_id")
+
+        if entered_code == expected_code and user_id:
+            user = User.objects.get(id=user_id)
+            login(request, user)
+            # Очищаем сессию после успешной проверки
+            del request.session['expected_unique_code']
+            del request.session['user_id']
+            return redirect("home")
+        else:
+            return render(request, "verify_unique_code.html", {
+                "error": "Неверный уникальный код. Попробуйте снова."
+            })
+    return redirect("register")
+
 def student_login(request):
     if request.method == "POST":
-        username = request.POST.get("username")  # Используем username
+        username = request.POST.get("username")
         password = request.POST.get("password")
-        student = authenticate(request, username=username, password=password)  # Здесь username
-        if student is not None:
-            login(request, student)
-            return redirect("home")  # Редирект на домашнюю страницу
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect("home")
         else:
-            return render(request, "login.html", {"error": "Неверные данные"})
+            # Добавляем сообщение об ошибке через messages
+            messages.error(request, "Неверные данные. Проверьте имя пользователя и пароль.")
+            return render(request, "login.html")
     return render(request, "login.html")
 
 def student_logout(request):
     logout(request)
     return redirect('login')
-
 #
 # def dashboard(request):
 #     return render(request, 'dashboard.html', {'user': request.user})
@@ -59,6 +88,7 @@ def quiz_list(request):
 
     questions = Question.objects.filter(language=language).prefetch_related('choices')
     total_questions = questions.count()
+    question_list = [{'id': q.id, 'text': q.text} for q in questions]
 
     if total_questions == 0:
         question = None
@@ -66,27 +96,20 @@ def quiz_list(request):
     else:
         current_question = max(1, min(current_question, total_questions))
         question = questions[current_question - 1]
-        # Получаем выбранный ответ для текущего вопроса из сессии
         selected_answer = request.session.get('answers', {}).get(f'answer_{question.id}')
 
     user = request.user
     student, created = Student.objects.get_or_create(user=user)
 
-    # Инициализация ответов в сессии, если их нет
     if 'answers' not in request.session:
         request.session['answers'] = {}
 
-    print(f"Session answers for question {current_question}: {request.session.get('answers', {})}")
-    print(f"Selected answer for question {question.id if question else 'none'}: {selected_answer}")
+    # Передаем начальное время таймера из сессии
+    start_time = request.session.get(f'timer_start_{user.id}')
 
-    # Обработка отправки теста
     if request.method == 'POST' and 'submit_quiz' in request.POST:
         submitted_answers = request.session.get('answers', {}).copy()
-        print(f"Submitted answers: {submitted_answers}")
-
-        # Проверяем, есть ли хотя бы один ответ
-        if not submitted_answers:
-            # Если ответов нет, показываем предупреждение и возвращаем на главную страницу
+        if len(submitted_answers) < total_questions:
             return render(request, 'index.html', {
                 'question': question,
                 'current_language': language,
@@ -96,56 +119,58 @@ def quiz_list(request):
                 'initial_time': 3600,
                 'answers': request.session.get('answers', {}),
                 'selected_answer': selected_answer,
-                'error': 'Вы не ответили ни на один вопрос. Тест не будет завершен.'
+                'question_list': question_list,
+                'warning': 'Вы ответили не на все вопросы. Вы уверены, что хотите завершить тест?',
+                'show_confirm': True,
+                'start_time': start_time
             })
 
-        correct_count = 0
-        user_answers = []
-
-        for q_id, answer in submitted_answers.items():
-            if q_id.startswith('answer_'):
-                question_id = q_id.replace('answer_', '')
-                try:
-                    if not question_id.isdigit():
+        if 'confirm_submit' in request.POST or len(submitted_answers) == total_questions:
+            correct_count = 0
+            user_answers = []
+            for q_id, answer in submitted_answers.items():
+                if q_id.startswith('answer_'):
+                    question_id = q_id.replace('answer_', '')
+                    try:
+                        if not question_id.isdigit():
+                            continue
+                        question_id = int(question_id)
+                        q = Question.objects.get(id=question_id)
+                        choice = q.choices.first()
+                        if choice:
+                            correct_answer = choice.is_correct
+                            user_answer = {
+                                'question_text': q.text,
+                                'user_answer': answer,
+                                'correct_answer': correct_answer,
+                                'is_correct': choice.is_correct == answer
+                            }
+                            user_answers.append(user_answer)
+                            if choice.is_correct == answer:
+                                correct_count += 1
+                    except (Question.DoesNotExist, ValueError):
                         continue
-                    question_id = int(question_id)
-                    q = Question.objects.get(id=question_id)
-                    choice = q.choices.first()
-                    if choice:
-                        correct_answer = choice.is_correct
-                        user_answer = {
-                            'question_text': q.text,
-                            'user_answer': answer,
-                            'correct_answer': correct_answer,
-                            'is_correct': choice.is_correct == answer
-                        }
-                        user_answers.append(user_answer)
-                        if choice.is_correct == answer:
-                            correct_count += 1
-                except (Question.DoesNotExist, ValueError):
-                    continue
 
-        score = (correct_count / total_questions) * 50 if total_questions > 0 else 0
-        student.score = score
-        student.save()
+            score = (correct_count / total_questions) * 50 if total_questions > 0 else 0
+            student.score = score
+            student.save()
+            request.session['answers'] = {}
+            request.session.modified = True
+            # Сбрасываем таймер после завершения теста
+            del request.session[f'timer_start_{user.id}']
+            return render(request, 'results.html', {
+                'score': score,
+                'total_questions': total_questions,
+                'total_score': score * 2,
+                'current_language': language,
+                'user': user,
+                'user_answers': user_answers
+            })
 
-        # Очистка сессии после отправки
-        request.session['answers'] = {}
-        request.session.modified = True
-
-        # Перенаправляем на страницу результатов
-        return render(request, 'results.html', {
-            'score': score,
-            'total_questions': total_questions,
-            'current_language': language,
-            'user': user,
-            'user_answers': user_answers
-        })
-
-    initial_time = 3600  # 1 час в секундах
-
+    initial_time = 3600
     if 'timer_reset' in request.GET:
         request.session['answers'] = {}
+        del request.session[f'timer_start_{user.id}']
         request.session.modified = True
 
     return render(request, 'index.html', {
@@ -156,8 +181,21 @@ def quiz_list(request):
         'total_questions': total_questions,
         'initial_time': initial_time,
         'answers': request.session.get('answers', {}),
-        'selected_answer': selected_answer
+        'selected_answer': selected_answer,
+        'question_list': question_list,
+        'start_time': start_time  # Передаем время начала
     })
+
+@login_required
+def set_timer(request):
+    if request.method == 'POST':
+        start_time = request.POST.get('start_time')
+        if start_time:
+            request.session[f'timer_start_{request.user.id}'] = int(start_time)
+            request.session.modified = True
+            return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'error'}, status=400)
+    return JsonResponse({'status': 'method not allowed'}, status=405)
 
 
 @require_POST

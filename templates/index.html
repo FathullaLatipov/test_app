@@ -55,6 +55,35 @@
         </h2>
     </div>
 
+<div class="w-full max-w-2xl mb-4">
+    <div class="bg-white shadow-md rounded-lg p-4">
+        <div class="flex justify-between mb-2">
+            <span class="text-sm md:text-base font-medium text-gray-700">Прогресс: {{ current_question }} / {{ total_questions }}</span>
+            <span class="text-sm md:text-base font-medium text-gray-700">Отвечено: {{ answers|length }} / {{ total_questions }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                 style="width: {% widthratio answers|length total_questions 100 %}%;"></div>
+        </div>
+        <div class="mt-2 flex flex-wrap gap-1 justify-center">
+            {% for q in question_list %}
+                <a href="?lang={{ current_language }}&q={{ forloop.counter }}"
+                   class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-200 progress-item
+                        {% if forloop.counter == current_question %}
+                            bg-blue-500 text-white ring-2 ring-blue-700
+                        {% elif answers|dict_key:'answer_'|add:q.id|stringformat:'s' %}
+                            bg-blue-600 text-white hover:bg-blue-700
+                        {% else %}
+                            bg-gray-300 text-gray-700 hover:bg-gray-400
+                        {% endif %}"
+                   data-question="{{ q.id }}"
+                   title="Вопрос {{ forloop.counter }}">
+                    {{ forloop.counter }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
     <!-- Question -->
     {% if question %}
     <div class="w-full max-w-2xl bg-white shadow-2xl rounded-xl p-4 md:p-6">
@@ -95,6 +124,24 @@
             {% if current_question == total_questions %}
             <button type="submit" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Завершить тест</button>
             {% endif %}
+
+            <!-- Модальное окно подтверждения -->
+    {% if show_confirm %}
+    <div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ warning }}</h3>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelSubmit" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Отмена</button>
+                <form method="POST" action="{% url 'home' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="submit_quiz" value="true">
+                    <input type="hidden" name="confirm_submit" value="true">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Завершить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
         </form>
     </div>
 
@@ -117,68 +164,66 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const totalTime = 3600; // 1 час в секундах
-    let startTime = localStorage.getItem('quizStartTime');
-    const timerElement = document.getElementById('timer');
-    const form = document.getElementById('quizForm');
-    const radios = document.querySelectorAll('input[type="radio"]');
-    const submitButton = document.querySelector('button[type="submit"]'); // Находим кнопку "Завершить тест"
+        const totalTime = 3600; // 1 час в секундах
+        const timerElement = document.getElementById('timer');
+        const form = document.getElementById('quizForm');
+        const radios = document.querySelectorAll('input[type="radio"]');
+        const submitButton = document.querySelector('button[type="submit"]');
 
-    // Сброс таймера при первой загрузке или если время устарело
-    if (!startTime || (new Date().getTime() - parseInt(startTime) > totalTime * 1000)) {
-        localStorage.removeItem('quizStartTime');
-        startTime = null;
-    }
-
-    // Сброс таймера, если есть параметр timer_reset
-    if (window.location.search.includes('timer_reset=true')) {
-        localStorage.removeItem('quizStartTime');
-        startTime = null;
-    }
-
-    if (!startTime) {
-        startTime = new Date().getTime();
-        localStorage.setItem('quizStartTime', startTime);
-        console.log('Timer reset, new start time:', startTime);
-    } else {
-        console.log('Existing start time:', startTime);
-    }
-
-    const updateTimer = () => {
+        // Получаем начальное время из сессии (передаем через Django)
+        let startTime = {{ start_time|default:'null' }};
         const currentTime = new Date().getTime();
-        const elapsedTime = Math.floor((currentTime - startTime) / 1000);
-        const timeLeft = totalTime - elapsedTime;
-        if (timeLeft > 0) {
-            const hours = Math.floor(timeLeft / 3600);
-            const minutes = Math.floor((timeLeft % 3600) / 60);
-            const seconds = timeLeft % 60;
-            timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        } else {
-            clearInterval(timer);
-            timerElement.textContent = "Время истекло!";
-            timerElement.classList.add('text-red-600');
-            const hasAnswers = Object.keys({% if answers %}{{ answers|safe }}{% else %}{}{% endif %}).length > 0;
-            if (hasAnswers) {
-                alert("Время истекло. Завершите тест, нажав на кнопку 'Завершить тест'.");
-            } else {
-                alert("Вы не ответили ни на один вопрос. Тест не будет отправлен.");
-            }
-        }
-    };
 
-    const timer = setInterval(updateTimer, 1000);
-    updateTimer();
+        // Если startTime не установлен в сессии, устанавливаем его
+        if (!startTime) {
+            startTime = currentTime;
+            fetch('/set_timer/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `start_time=${startTime}`
+            }).then(response => response.json())
+              .then(data => console.log('Timer set:', data))
+              .catch(error => console.error('Error setting timer:', error));
+        }
+
+        const updateTimer = () => {
+            const currentTime = new Date().getTime();
+            const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+            const timeLeft = totalTime - elapsedTime;
+            if (timeLeft > 0) {
+                const hours = Math.floor(timeLeft / 3600);
+                const minutes = Math.floor((timeLeft % 3600) / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                clearInterval(timer);
+                timerElement.textContent = "Время истекло!";
+                timerElement.classList.add('text-red-600');
+                const hasAnswers = Object.keys({% if answers %}{{ answers|safe }}{% else %}{}{% endif %}).length > 0;
+                if (hasAnswers) {
+                    alert("Время истекло. Завершите тест, нажав на кнопку 'Завершить тест'.");
+                } else {
+                    alert("Вы не ответили ни на один вопрос. Тест не будет отправлен.");
+                }
+            }
+        };
+
+        const timer = setInterval(updateTimer, 1000);
+        updateTimer();
 
     radios.forEach(radio => {
         radio.addEventListener('change', (e) => {
             const selectedValue = e.target.value;
             const questionId = e.target.id.split('_')[1];
 
-            // Убираем старые выделения и добавляем серый фон для выбранного
+            // Обновляем визуальное выделение
             document.querySelectorAll('.answer-label').forEach(label => {
-                label.classList.remove('bg-gray-300'); // Сбрасываем фон у всех
+                label.classList.remove('bg-gray-300');
             });
-            e.target.nextElementSibling.classList.add('bg-gray-300'); // Добавляем серый фон выбранному
+            e.target.nextElementSibling.classList.add('bg-gray-300');
 
             fetch('{% url "save_answer" %}', {
                 method: 'POST',
@@ -192,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.status === 'success') {
                     console.log(`Saved answer for question ${questionId}: ${selectedValue}`);
+                    updateProgressScale(); // Обновляем шкалу прогресса
                 }
             })
             .catch(error => console.error('Error:', error));
@@ -225,6 +271,55 @@ document.addEventListener('DOMContentLoaded', () => {
             menu.style.opacity = '0';
         }
     });
+
+        // Обработка кнопки "Завершить тест"
+    const submitBtn = document.getElementById('submitQuizBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+            // Если модальное окно уже показано, не вмешиваемся
+            if (!document.getElementById('confirmModal')) {
+                e.preventDefault();
+                document.getElementById('quizForm').submit(); // Отправляем форму, если нет предупреждения
+            }
+        });
+    }
+
+    // Обработка кнопки "Отмена" в модальном окне
+    const cancelSubmit = document.getElementById('cancelSubmit');
+    if (cancelSubmit) {
+        cancelSubmit.addEventListener('click', () => {
+            document.getElementById('confirmModal').style.display = 'none';
+        });
+    }
+
+    // Функция обновления шкалы прогресса
+
+
+    // Функция для обновления шкалы прогресса
+     function updateProgressScale() {
+            const answers = {% if answers %}{{ answers|safe }}{% else %}{}{% endif %};
+            const progressItems = document.querySelectorAll('.progress-item');
+            progressItems.forEach(item => {
+                const questionId = item.getAttribute('data-question');
+                const isCurrent = parseInt(item.textContent) === {{ current_question }};
+                item.classList.remove('bg-blue-600', 'bg-gray-300', 'text-white', 'text-gray-700', 'hover:bg-blue-700', 'hover:bg-gray-400');
+                if (isCurrent) {
+                    item.classList.add('bg-blue-500', 'text-white', 'ring-2', 'ring-blue-700');
+                } else if (answers[`answer_${questionId}`]) {
+                    item.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+                } else {
+                    item.classList.add('bg-gray-300', 'text-gray-700', 'hover:bg-gray-400');
+                }
+            });
+        }
+
+        updateProgressScale();
 });
+
+
+
+
+
+
 </script>
 {% endblock %}

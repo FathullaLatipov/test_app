@@ -12,6 +12,12 @@ class StudentRegistrationForm(forms.ModelForm):
     class Meta:
         model = Student
         fields = ["first_name", "last_name", "middle_name", "password"]
+
+    def clean_first_name(self):
+        first_name = self.cleaned_data.get("first_name")
+        if not first_name:
+            raise forms.ValidationError("Имя обязательно для заполнения.")
+        return first_name
 # class StudentRegistrationForm(forms.ModelForm):
 #     password = forms.CharField(widget=forms.PasswordInput)
 #     class Meta:
