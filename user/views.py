@@ -1,15 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Question, Student, Choice
 from django.contrib.auth.models import User
-from django.contrib.auth import login
+from django.contrib.auth import authenticate, login, logout
 from .forms import StudentRegistrationForm
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 import time
 from django.contrib import messages
+from docx import Document
+from django.utils.timezone import now
 
 def register_student(request):
     if request.method == "POST":
@@ -45,6 +47,9 @@ def verify_unique_code(request):
         if entered_code and expected_code and user_id:
             if entered_code == expected_code:
                 user = User.objects.get(id=user_id)
+                student = user.student  # Получаем связанный объект Student
+                student.login_time = now()
+                student.save()
                 login(request, user)
                 # Удаляем сессионные данные, только если они существуют
                 if 'expected_unique_code' in request.session:
@@ -69,6 +74,9 @@ def student_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            student = user.student  # Получаем связанный объект Student
+            student.login_time = now()  # Логируем время входа
+            student.save()
             return redirect("home")
         else:
             # Добавляем сообщение об ошибке через messages
@@ -108,6 +116,13 @@ def quiz_list(request):
     user = request.user
     student, created = Student.objects.get_or_create(user=user)
 
+    if not student.test_start_time and not student.test_end_time:
+        # Устанавливаем время начала теста, если оно ещё не установлено
+        student.test_start_time = now()
+        student.save()
+        request.session[f'timer_start_{user.id}'] = int(time.time() * 1000)
+        request.session.modified = True
+
     if 'answers' not in request.session:
         request.session['answers'] = {}
 
@@ -139,6 +154,7 @@ def quiz_list(request):
 
         score = (correct_count / total_questions) * 50 if total_questions > 0 else 0
         student.score = score
+        student.test_end_time = now()
         student.save()
         request.session['answers'] = {}
         request.session.modified = True
@@ -171,7 +187,7 @@ def quiz_list(request):
         'answers': request.session.get('answers', {}),
         'selected_answer': selected_answer,
         'question_list': question_list,
-        'start_time': start_time
+        'start_time': request.session.get(f'timer_start_{user.id}')
     })
 
 @login_required
@@ -185,6 +201,35 @@ def set_timer(request):
         return JsonResponse({'status': 'error'}, status=400)
     return JsonResponse({'status': 'method not allowed'}, status=405)
 
+
+@login_required
+def download_student_report(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+
+    # Создаем документ Word
+    doc = Document()
+    doc.add_heading('Отчет', level=1)
+
+    # Добавляем данные студента
+    doc.add_paragraph(f'Имя: {student.first_name}')
+    doc.add_paragraph(f'Фамилия: {student.last_name}')
+    doc.add_paragraph(f'Отчество: {student.middle_name or "Не указано"}')
+    doc.add_paragraph(f'Уникальный код: {student.unique_code}')
+    doc.add_paragraph(f'Баллы: {student.score}')
+
+    # Добавляем данные о времени
+    doc.add_paragraph(
+        f'Время входа: {student.login_time.strftime("%Y-%m-%d %H:%M:%S") if student.login_time else "Не указано"}')
+    doc.add_paragraph(
+        f'Время начала теста: {student.test_start_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_start_time else "Не указано"}')
+    doc.add_paragraph(
+        f'Время окончания теста: {student.test_end_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_end_time else "Не указано"}')
+
+    # Сохраняем документ в буфер
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=report_{student.unique_code}.docx'
+    doc.save(response)
+    return response
 
 @require_POST
 @login_required

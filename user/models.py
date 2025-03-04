@@ -1,6 +1,7 @@
 from django.db import models
 import random
 import string
+import datetime
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
@@ -27,6 +28,13 @@ class Student(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Дата создания'))
     score = models.IntegerField(default=0, verbose_name=_('Баллы'))
+    login_time = models.DateTimeField(null=True, blank=True, verbose_name=_('Время входа'))
+    test_start_time = models.DateTimeField(null=True, blank=True, verbose_name=_('Время начала теста'))
+    test_end_time = models.DateTimeField(null=True, blank=True, verbose_name=_('Время окончания теста'))
+
+    def save(self, *args, **kwargs):
+        self.score *= 2  # Умножаем на 2 перед сохранением
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.last_name} {self.first_name} {self.middle_name or ""} ({self.unique_code})'
