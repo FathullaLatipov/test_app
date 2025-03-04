@@ -116,68 +116,49 @@ def quiz_list(request):
 
     if request.method == 'POST' and 'submit_quiz' in request.POST:
         submitted_answers = request.session.get('answers', {}).copy()
-        if len(submitted_answers) < total_questions:
-            return render(request, 'index.html', {
-                'question': question,
-                'current_language': language,
-                'user': user,
-                'current_question': current_question,
-                'total_questions': total_questions,
-                'initial_time': 3600,
-                'answers': request.session.get('answers', {}),
-                'selected_answer': selected_answer,
-                'question_list': question_list,
-                'warning': 'Вы ответили не на все вопросы. Вы уверены, что хотите завершить тест?',
-                'show_confirm': True,
-                'start_time': start_time
-            })
+        correct_count = 0
+        user_answers = []
 
-        if 'confirm_submit' in request.POST or len(submitted_answers) == total_questions:
-            correct_count = 0
-            user_answers = []
-            for q_id, answer in submitted_answers.items():
-                if q_id.startswith('answer_'):
-                    question_id = q_id.replace('answer_', '')
-                    try:
-                        if not question_id.isdigit():
-                            continue
-                        question_id = int(question_id)
-                        q = Question.objects.get(id=question_id)
-                        choice = q.choices.first()
-                        if choice:
-                            correct_answer = choice.is_correct
-                            user_answer = {
-                                'question_text': q.text,
-                                'user_answer': answer,
-                                'correct_answer': correct_answer,
-                                'is_correct': choice.is_correct == answer
-                            }
-                            user_answers.append(user_answer)
-                            if choice.is_correct == answer:
-                                correct_count += 1
-                    except (Question.DoesNotExist, ValueError):
-                        continue
+        # Обрабатываем все вопросы, даже если на них не ответили
+        for q in questions:
+            q_id = f'answer_{q.id}'
+            answer = submitted_answers.get(q_id, None)  # Если ответа нет, None
+            choice = q.choices.first()
+            if choice:
+                correct_answer = choice.is_correct
+                is_correct = (answer == correct_answer) if answer else False  # Неотвеченный = неверный
+                user_answer = {
+                    'question_text': q.text,
+                    'user_answer': answer if answer else "Не отвечено",
+                    'correct_answer': correct_answer,
+                    'is_correct': is_correct
+                }
+                user_answers.append(user_answer)
+                if is_correct:
+                    correct_count += 1
 
-            score = (correct_count / total_questions) * 50 if total_questions > 0 else 0
-            student.score = score
-            student.save()
-            request.session['answers'] = {}
-            request.session.modified = True
-            # Сбрасываем таймер после завершения теста
+        score = (correct_count / total_questions) * 50 if total_questions > 0 else 0
+        student.score = score
+        student.save()
+        request.session['answers'] = {}
+        request.session.modified = True
+        # Сбрасываем таймер после завершения теста
+        if f'timer_start_{user.id}' in request.session:
             del request.session[f'timer_start_{user.id}']
-            return render(request, 'results.html', {
-                'score': score,
-                'total_questions': total_questions,
-                'total_score': score * 2,
-                'current_language': language,
-                'user': user,
-                'user_answers': user_answers
-            })
+        return render(request, 'results.html', {
+            'score': score,
+            'total_questions': total_questions,
+            'total_score': score * 2,
+            'current_language': language,
+            'user': user,
+            'user_answers': user_answers
+        })
 
     initial_time = 3600
     if 'timer_reset' in request.GET:
         request.session['answers'] = {}
-        del request.session[f'timer_start_{user.id}']
+        if f'timer_start_{user.id}' in request.session:
+            del request.session[f'timer_start_{user.id}']
         request.session.modified = True
 
     return render(request, 'index.html', {
@@ -190,7 +171,7 @@ def quiz_list(request):
         'answers': request.session.get('answers', {}),
         'selected_answer': selected_answer,
         'question_list': question_list,
-        'start_time': start_time  # Передаем время начала
+        'start_time': start_time
     })
 
 @login_required

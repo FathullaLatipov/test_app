@@ -126,22 +126,6 @@
             {% endif %}
 
             <!-- Модальное окно подтверждения -->
-    {% if show_confirm %}
-    <div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ warning }}</h3>
-            <div class="flex justify-end space-x-4">
-                <button id="cancelSubmit" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Отмена</button>
-                <form method="POST" action="{% url 'home' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="submit_quiz" value="true">
-                    <input type="hidden" name="confirm_submit" value="true">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Завершить</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
         </form>
     </div>
 
@@ -271,26 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
             menu.style.opacity = '0';
         }
     });
-
-        // Обработка кнопки "Завершить тест"
-    const submitBtn = document.getElementById('submitQuizBtn');
-    if (submitBtn) {
-        submitBtn.addEventListener('click', (e) => {
-            // Если модальное окно уже показано, не вмешиваемся
-            if (!document.getElementById('confirmModal')) {
-                e.preventDefault();
-                document.getElementById('quizForm').submit(); // Отправляем форму, если нет предупреждения
-            }
-        });
-    }
-
-    // Обработка кнопки "Отмена" в модальном окне
-    const cancelSubmit = document.getElementById('cancelSubmit');
-    if (cancelSubmit) {
-        cancelSubmit.addEventListener('click', () => {
-            document.getElementById('confirmModal').style.display = 'none';
-        });
-    }
 
     // Функция обновления шкалы прогресса
 
