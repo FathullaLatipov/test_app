@@ -65,7 +65,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+#
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -140,11 +140,18 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = True
 
 JAZZMIN_SETTINGS = {
-    "site_title": "PCS", "site_header": "PCS", "site_brand": "PCS",
-    "login_logo": None, "login_logo_dark": None,
-    "site_icon": None, "welcome_sign": "PCS", "copyright": "PCS", "user_avatar": None,
+    "site_title": "PCS",
+    "site_header": "PCS",
+    "site_brand": 'PCS',
+    "site_logo": "logo.png",  # Логотип в navbar
+    "login_logo": "logo.png",  # Логотип на странице входа
+    "login_logo_dark": "logo.png",
+    "site_icon": "logo.png",
+    "welcome_sign": "PCS",
+    "copyright": "PCS",
+    "user_avatar": None,
+    "custom_css": "css/custom.css",  # Подключаем кастомный CSS
 }
-
 # AUTHENTICATION_BACKENDS = [
 #     'user.auth_backend.StudentAuthBackend',  # Замените 'your_app' на имя приложения
 #     'django.contrib.auth.backends.ModelBackend',
