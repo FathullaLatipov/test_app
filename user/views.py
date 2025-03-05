@@ -11,6 +11,8 @@ from django.contrib.auth.decorators import login_required
 import time
 from django.contrib import messages
 from docx import Document
+from openpyxl import Workbook
+import openpyxl
 from django.utils.timezone import now
 
 def register_student(request):
@@ -202,33 +204,82 @@ def set_timer(request):
     return JsonResponse({'status': 'method not allowed'}, status=405)
 
 
+MONTHS = {
+    'January': 'Январь',
+    'February': 'Февраль',
+    'March': 'Март',
+    'April': 'Апрель',
+    'May': 'Май',
+    'June': 'Июнь',
+    'July': 'Июль',
+    'August': 'Август',
+    'September': 'Сентябрь',
+    'October': 'Октябрь',
+    'November': 'Ноябрь',
+    'December': 'Декабрь'
+}
+
 @login_required
-def download_student_report(request, student_id):
-    student = get_object_or_404(Student, id=student_id)
+def download_student_report(request):
+    ids_str = request.GET.get('ids', '')
+    student_ids = [int(id) for id in ids_str.split(',') if id.isdigit()]
 
-    # Создаем документ Word
-    doc = Document()
-    doc.add_heading('Отчет', level=1)
+    if not student_ids:
+        return HttpResponse("Не выбрано ни одного студента.", status=400)
 
-    # Добавляем данные студента
-    doc.add_paragraph(f'Имя: {student.first_name}')
-    doc.add_paragraph(f'Фамилия: {student.last_name}')
-    doc.add_paragraph(f'Отчество: {student.middle_name or "Не указано"}')
-    doc.add_paragraph(f'Уникальный код: {student.unique_code}')
-    doc.add_paragraph(f'Баллы: {student.score}')
+    students = Student.objects.filter(id__in=student_ids)
 
-    # Добавляем данные о времени
-    doc.add_paragraph(
-        f'Время входа: {student.login_time.strftime("%Y-%m-%d %H:%M:%S") if student.login_time else "Не указано"}')
-    doc.add_paragraph(
-        f'Время начала теста: {student.test_start_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_start_time else "Не указано"}')
-    doc.add_paragraph(
-        f'Время окончания теста: {student.test_end_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_end_time else "Не указано"}')
+    # Создаем Excel-файл
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Студенты"
 
-    # Сохраняем документ в буфер
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename=report_{student.unique_code}.docx'
-    doc.save(response)
+    # Заголовки таблицы
+    headers = ['Фамилия', 'Имя', 'Уникальный код', 'Баллы', 'Время входа', 'Время начала теста', 'Время окончания теста']
+    for col_num, header in enumerate(headers, 1):
+        ws[f'{chr(64 + col_num)}1'] = header
+        ws[f'{chr(64 + col_num)}1'].font = openpyxl.styles.Font(bold=True)
+
+
+    # Заполняем данными студентов
+    for row_num, student in enumerate(students, 2):
+        ws[f'A{row_num}'] = student.last_name
+        ws[f'B{row_num}'] = student.first_name
+        ws[f'C{row_num}'] = student.unique_code
+        ws[f'D{row_num}'] = student.score
+        if student.login_time:
+            # Форматируем дату с заменой месяца на русский
+            date_str = student.login_time.strftime("%d %B %Y г. %H:%M")
+            month = student.login_time.strftime("%B")
+            date_str = date_str.replace(month, MONTHS[month])
+            ws[f'E{row_num}'] = date_str
+        else:
+            ws[f'E{row_num}'] = 'Не указано'
+        if student.test_start_time:
+            # Форматируем дату с заменой месяца на русский
+            date_str = student.test_start_time.strftime("%d %B %Y г. %H:%M")
+            month = student.test_start_time.strftime("%B")
+            date_str = date_str.replace(month, MONTHS[month])
+            ws[f'F{row_num}'] = date_str
+        else:
+            ws[f'F{row_num}'] = 'Не указано'
+        if student.test_end_time:
+            # Форматируем дату с заменой месяца на русский
+            date_str = student.test_end_time.strftime("%d %B %Y г. %H:%M")
+            month = student.test_end_time.strftime("%B")
+            date_str = date_str.replace(month, MONTHS[month])
+            ws[f'G{row_num}'] = date_str
+        else:
+            ws[f'G{row_num}'] = 'Не указано'
+
+    for col in ws.columns:
+        max_length = max(len(str(cell.value)) for cell in col if cell.value)
+        ws.column_dimensions[col[0].column_letter].width = max_length + 2
+
+    # Настраиваем ответ для скачивания
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=students_report.xlsx'
+    wb.save(response)
     return response
 
 @require_POST

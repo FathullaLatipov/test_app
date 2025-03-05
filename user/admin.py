@@ -3,9 +3,9 @@ from django.contrib import admin
 from .models import Question, Choice, Student
 from .forms import ExcelImportForm
 import pandas as pd
-from django.urls import path
+from django.urls import path, reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from docx import Document
 from django.utils.timezone import now
 
@@ -18,45 +18,20 @@ class StudentAdmin(admin.ModelAdmin):
     actions = ['download_report']
 
     def download_report(self, request, queryset):
-        if queryset.count() != 1:
-            self.message_user(request, "Пожалуйста, выберите только одного студента для генерации отчета.",
-                              level='error')
+        # Проверяем, выбран ли хотя бы один студент
+        if not queryset.exists():
+            self.message_user(request, "Пожалуйста, выберите хотя бы одного студента.", level='error')
             return
-        student = queryset.first()
-        return redirect('download_student_report', student_id=student.id)
 
-    download_report.short_description = "Скачать отчет в формате Word"
+        # Собираем ID выбранных студентов
+        student_ids = queryset.values_list('id', flat=True)
+        ids_str = ','.join(map(str, student_ids))
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('<int:student_id>/download_report/', self.admin_site.admin_view(self.download_report_view),
-                 name='download_student_report'),
-        ]
-        return custom_urls + urls
+        # Формируем URL с параметрами ids и перенаправляем
+        url = reverse('download_student_report') + f'?ids={ids_str}'
+        return HttpResponseRedirect(url)
 
-    def download_report_view(self, request, student_id):
-        student = get_object_or_404(Student, id=student_id)
-        doc = Document()
-        doc.add_heading('Отчет', level=1)
-
-        doc.add_paragraph(f'Имя: {student.first_name}')
-        doc.add_paragraph(f'Фамилия: {student.last_name}')
-        doc.add_paragraph(f'Отчество: {student.middle_name or "Не указано"}')
-        doc.add_paragraph(f'Уникальный код: {student.unique_code}')
-        doc.add_paragraph(f'Баллы: {student.score}')
-
-        doc.add_paragraph(
-            f'Время входа: {student.login_time.strftime("%Y-%m-%d %H:%M:%S") if student.login_time else "Не указано"}')
-        doc.add_paragraph(
-            f'Время начала теста: {student.test_start_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_start_time else "Не указано"}')
-        doc.add_paragraph(
-            f'Время окончания теста: {student.test_end_time.strftime("%Y-%m-%d %H:%M:%S") if student.test_end_time else "Не указано"}')
-
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        response['Content-Disposition'] = f'attachment; filename=report_{student.unique_code}.docx'
-        doc.save(response)
-        return response
+    download_report.short_description = "Скачать отчет в формате таблицы"
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):

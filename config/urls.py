@@ -14,7 +14,7 @@ urlpatterns = [
     path('save-answer/', save_answer, name='save_answer'),
     path('set_timer/', set_timer, name='set_timer'),
     path('verify/', verify_unique_code, name='verify_unique_code'),
-    path('download_student_report/<int:student_id>/', download_student_report, name='download_student_report'),
+    path('download_student_report/', download_student_report, name='download_student_report'),
 ]
 
 
