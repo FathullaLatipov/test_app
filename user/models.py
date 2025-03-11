@@ -104,6 +104,7 @@ class Question(models.Model):
 
     text = models.TextField()
     language = models.CharField(max_length=2, choices=LANGUAGE_CHOICES)
+    module = models.CharField(max_length=50, blank=True, null=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

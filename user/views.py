@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 import time
 from django.contrib import messages
 from docx import Document
+from django.db.models import Q
 from openpyxl import Workbook
 import openpyxl
 from django.utils.timezone import now
@@ -43,29 +44,69 @@ def register_student(request):
 def verify_unique_code(request):
     if request.method == "POST":
         entered_code = request.POST.get("unique_code")
-        expected_code = request.session.get("expected_unique_code")  # Используем .get() для безопасного доступа
-        user_id = request.session.get("user_id")  # Используем .get() для безопасного доступа
+        expected_code = request.session.get("expected_unique_code")
+        user_id = request.session.get("user_id")
+        language = request.POST.get("language")
+        difficulty = request.POST.get("difficulty")
 
-        if entered_code and expected_code and user_id:
-            if entered_code == expected_code:
-                user = User.objects.get(id=user_id)
-                student = user.student  # Получаем связанный объект Student
-                student.login_time = now()
-                student.save()
-                login(request, user)
-                # Удаляем сессионные данные, только если они существуют
-                if 'expected_unique_code' in request.session:
-                    del request.session['expected_unique_code']
-                if 'user_id' in request.session:
-                    del request.session['user_id']
-                return redirect("home")
-            else:
+        if not all([entered_code, expected_code, user_id, language, difficulty]):
+            return render(request, "verify_unique_code.html", {
+                "error": "Заполните все поля: код, язык и сложность."
+            })
+
+        if entered_code == expected_code:
+            user = User.objects.get(id=user_id)
+            student = user.student
+            student.login_time = now()
+            student.save()
+            login(request, user)
+
+            # 1. Находим все модули, которые соответствуют языку и сложности
+            modules = Question.objects.filter(
+                Q(module__contains=difficulty) & Q(module__contains=language)
+            ).values('module').distinct()
+
+            # Проверяем, что модулей достаточно (например, 5)
+            if len(modules) < 5:
                 return render(request, "verify_unique_code.html", {
-                    "error": "Неверный уникальный код. Попробуйте снова."
+                    "error": f"Недостаточно модулей для {difficulty} на языке {language}. Найдено {len(modules)} модулей, нужно 5."
                 })
+
+            # 2. Для каждого модуля выбираем по 10 случайных вопросов
+            selected_questions = []
+            for module in modules:
+                module_name = module['module']  # Например, "module_1_easy_uz"
+                questions_in_module = list(Question.objects.filter(module=module_name).order_by('?')[:10])
+
+                # Проверяем, что в модуле достаточно вопросов
+                if len(questions_in_module) < 10:
+                    return render(request, "verify_unique_code.html", {
+                        "error": f"В модуле {module_name} недостаточно вопросов: найдено {len(questions_in_module)}, нужно минимум 10."
+                    })
+
+                selected_questions.extend(questions_in_module)
+
+            # 3. Проверяем общее количество вопросов (должно быть 50)
+            if len(selected_questions) != 50:
+                return render(request, "verify_unique_code.html", {
+                    "error": f"Общее количество вопросов не равно 50: найдено {len(selected_questions)}."
+                })
+
+            # 4. Сохраняем выбранные вопросы и параметры в сессии
+            request.session['quiz_questions'] = [q.id for q in selected_questions]
+            request.session['language'] = language
+            request.session['difficulty'] = difficulty
+
+            # Очищаем сессионные данные верификации
+            if 'expected_unique_code' in request.session:
+                del request.session['expected_unique_code']
+            if 'user_id' in request.session:
+                del request.session['user_id']
+
+            return redirect("home")
         else:
             return render(request, "verify_unique_code.html", {
-                "error": "Сессия истекла или данные недоступны. Пожалуйста, начните регистрацию заново."
+                "error": "Неверный уникальный код. Попробуйте снова."
             })
     return redirect("register")
 
@@ -95,31 +136,29 @@ def student_logout(request):
 
 @login_required
 def quiz_list(request):
-    language = request.GET.get('lang', 'uz')
-    current_question = request.GET.get('q', '1')
+    quiz_questions_ids = request.session.get('quiz_questions', [])
+    language = request.session.get('language', 'uz')
+    if not quiz_questions_ids:
+        return redirect("verify_unique_code")
 
+    questions = Question.objects.filter(id__in=quiz_questions_ids).prefetch_related('choices')
+    total_questions = len(questions)
+    question_list = [{'id': q.id, 'text': q.text} for q in questions]
+
+    current_question = request.GET.get('q', '1')
     try:
         current_question = int(current_question)
     except ValueError:
         current_question = 1
+    current_question = max(1, min(current_question, total_questions))
 
-    questions = Question.objects.filter(language=language).prefetch_related('choices')
-    total_questions = questions.count()
-    question_list = [{'id': q.id, 'text': q.text} for q in questions]
-
-    if total_questions == 0:
-        question = None
-        selected_answer = None
-    else:
-        current_question = max(1, min(current_question, total_questions))
-        question = questions[current_question - 1]
-        selected_answer = request.session.get('answers', {}).get(f'answer_{question.id}')
+    question = questions[current_question - 1] if total_questions > 0 else None
+    selected_answer = request.session.get('answers', {}).get(f'answer_{question.id}') if question else None
 
     user = request.user
     student, created = Student.objects.get_or_create(user=user)
 
     if not student.test_start_time and not student.test_end_time:
-        # Устанавливаем время начала теста, если оно ещё не установлено
         student.test_start_time = now()
         student.save()
         request.session[f'timer_start_{user.id}'] = int(time.time() * 1000)
@@ -128,29 +167,31 @@ def quiz_list(request):
     if 'answers' not in request.session:
         request.session['answers'] = {}
 
-    # Передаем начальное время таймера из сессии
-    start_time = request.session.get(f'timer_start_{user.id}')
+    initial_time = 3600
+    if 'timer_reset' in request.GET:
+        request.session['answers'] = {}
+        if f'timer_start_{user.id}' in request.session:
+            del request.session[f'timer_start_{user.id}']
+        request.session.modified = True
 
     if request.method == 'POST' and 'submit_quiz' in request.POST:
         submitted_answers = request.session.get('answers', {}).copy()
         correct_count = 0
         user_answers = []
 
-        # Обрабатываем все вопросы, даже если на них не ответили
         for q in questions:
             q_id = f'answer_{q.id}'
-            answer = submitted_answers.get(q_id, None)  # Если ответа нет, None
+            answer = submitted_answers.get(q_id, None)
             choice = q.choices.first()
             if choice:
                 correct_answer = choice.is_correct
-                is_correct = (answer == correct_answer) if answer else False  # Неотвеченный = неверный
-                user_answer = {
+                is_correct = (answer == correct_answer) if answer else False
+                user_answers.append({
                     'question_text': q.text,
                     'user_answer': answer if answer else "Не отвечено",
                     'correct_answer': correct_answer,
                     'is_correct': is_correct
-                }
-                user_answers.append(user_answer)
+                })
                 if is_correct:
                     correct_count += 1
 
@@ -159,10 +200,16 @@ def quiz_list(request):
         student.test_end_time = now()
         student.save()
         request.session['answers'] = {}
-        request.session.modified = True
-        # Сбрасываем таймер после завершения теста
         if f'timer_start_{user.id}' in request.session:
             del request.session[f'timer_start_{user.id}']
+        if 'quiz_questions' in request.session:
+            del request.session['quiz_questions']
+        if 'language' in request.session:
+            del request.session['language']
+        if 'difficulty' in request.session:
+            del request.session['difficulty']
+        request.session.modified = True
+
         return render(request, 'results.html', {
             'score': score,
             'total_questions': total_questions,
@@ -171,13 +218,6 @@ def quiz_list(request):
             'user': user,
             'user_answers': user_answers
         })
-
-    initial_time = 3600
-    if 'timer_reset' in request.GET:
-        request.session['answers'] = {}
-        if f'timer_start_{user.id}' in request.session:
-            del request.session[f'timer_start_{user.id}']
-        request.session.modified = True
 
     return render(request, 'index.html', {
         'question': question,
@@ -299,3 +339,4 @@ def save_answer(request):
 
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)
+

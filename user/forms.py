@@ -33,4 +33,4 @@ class StudentRegistrationForm(forms.ModelForm):
 
 
 class ExcelImportForm(forms.ModelForm):
-    excel_file = forms.FileField(label="Загрузите Excel-файл")
+    excel_file = forms.FileField(label="Загрузите Excel-файл", required=False)
