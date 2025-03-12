@@ -1,14 +1,30 @@
 {% extends 'base.html' %}
 {% load test %}
+{% load i18n %}
 {% load static %}
 
 {% block content %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4">
-    <!-- Header (без изменений) {% if current_language == 'uz' %}animate-pulse{% endif %} -->
-    <div class="w-full max-w-4xl mb-6 flex justify-between items-center bg-white shadow-lg rounded-lg p-4">
+<div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4 relative">
+ <div class="absolute top-0 left-0 w-48 h-48 md:w-64 md:h-64 bg-no-repeat bg-contain"
+         style="background-image: url('{% static 'background1.png' %}'); transform: scaleX(1); opacity: 0.5"></div>
+
+    <!-- Ornament Top-Right -->
+    <div class="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-no-repeat bg-contain"
+         style="background-image: url('{% static 'background1.png' %}'); transform: scaleX(-1); opacity: 0.5"></div>
+
+    <!-- Ornament Bottom-Right -->
+    <div class="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-no-repeat bg-contain"
+         style="background-image: url('{% static 'background1.png' %}'); transform: scaleX(-1) scaleY(-1); opacity: 0.5"></div>
+
+    <!-- Ornament Bottom-Left -->
+    <div class="absolute bottom-0 left-0 w-48 h-48 md:w-64 md:h-64 bg-no-repeat bg-contain"
+         style="background-image: url('{% static 'background1.png' %}'); transform: scaleY(-1); opacity: 0.5"></div>
+
+    <!-- Header -->
+    <div class="w-full max-w-4xl mb-6 flex justify-between items-center bg-white shadow-lg rounded-lg p-4 relative z-10">
         <div class="flex items-center">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 }">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
                 <img src="{% static 'logo.png' %}" style="width:60px" alt="">
             </h1>
         </div>
@@ -23,73 +39,72 @@
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18m-9 7h9"></path>
                     </svg>
-                    O'zbek
+                    {% trans "O'zbek" %}
                 </a>
                 <a href="?lang=ru&q={{current_question}}" class="flex items-center px-3 py-2 text-gray-800 bg-gray-200 rounded-lg mb-2 hover:bg-gray-300 transition-colors duration-200 {% if current_language == 'ru' %}font-bold{% endif %}">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18m-9 7h9"></path>
                     </svg>
-                    Русский
+                    {% trans "Русский" %}
                 </a>
                 <a href="{% url 'logout' %}" class="flex items-center px-3 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                     </svg>
-                    Выйти
+                    {% trans "Выйти" %}
                 </a>
             </div>
         </div>
         <div class="hidden md:flex md:space-x-2">
-<!--            <a href="?lang=uz&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg {% if current_language == 'uz' %}font-bold{% endif %}">O'zbek</a>-->
-<!--            <a href="?lang=ru&q={{current_question}}" class="px-3 py-2 md:px-4 md:py-2 bg-gray-200 text-gray-800 rounded-lg {% if current_language == 'ru' %}font-bold{% endif %}">Русский</a>-->
-            <a href="#" class="px-3 py-2 md:px-4 md:py-2 bg-gray-200 text-gray-800 rounded-lg {% if current_language == 'ru' %}font-bold{% endif %}">Помощь</a>
-            <a href="{% url 'logout' %}" class="px-3 py-2 md:px-4 md:py-2 bg-red-600 text-white rounded-lg">Выйти</a>
+            <a href="#" class="px-3 py-2 md:px-4 md:py-2 bg-gray-200 text-gray-800 rounded-lg {% if current_language == 'ru' %}font-bold{% endif %}">{% trans "Помощь" %}</a>
+            <a href="{% url 'logout' %}" class="px-3 py-2 md:px-4 md:py-2 bg-red-600 text-white rounded-lg">{% trans "Выйти" %}</a>
         </div>
     </div>
 
-    <!-- Timer (без изменений) -->
-    <div class="mb-4 text-center w-full max-w-2xl">
+    <!-- Timer -->
+    <div class="mb-4 text-center w-full max-w-2xl relative z-10">
         <h2 class="text-xl md:text-2xl font-semibold text-gray-700 bg-white shadow-md rounded-lg px-3 py-2">
-            Добро пожаловать {{ user.username }}
+            {% trans "Добро пожаловать" %} {{ user.username }}
             <br>
-            Таймер: <span id="timer" class="text-blue-600 font-mono animate-pulse">{{ initial_time|time:"H:i:s" }}</span>
+            {% trans "Таймер" %}: <span id="timer" class="text-blue-600 font-mono animate-pulse">{{ initial_time|time:"H:i:s" }}</span>
         </h2>
     </div>
 
-<div class="w-full max-w-2xl mb-4">
-    <div class="bg-white shadow-md rounded-lg p-4">
-        <div class="flex justify-between mb-2">
-            <span class="text-sm md:text-base font-medium text-gray-700">Прогресс: {{ current_question }} / {{ total_questions }}</span>
-            <span class="text-sm md:text-base font-medium text-gray-700">Отвечено: {{ answers|length }} / {{ total_questions }}</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                 style="width: {% widthratio answers|length total_questions 100 %}%;"></div>
-        </div>
-        <div class="mt-2 flex flex-wrap gap-1 justify-center">
-            {% for q in question_list %}
-                <a href="?lang={{ current_language }}&q={{ forloop.counter }}"
-                   class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-200 progress-item
-                        {% if forloop.counter == current_question %}
-                            bg-blue-500 text-white ring-2 ring-blue-700
-                        {% elif answers|dict_key:'answer_'|add:q.id|stringformat:'s' %}
-                            bg-blue-600 text-white hover:bg-blue-700
-                        {% else %}
-                            bg-gray-300 text-gray-700 hover:bg-gray-400
-                        {% endif %}"
-                   data-question="{{ q.id }}"
-                   title="Вопрос {{ forloop.counter }}">
-                    {{ forloop.counter }}
-                </a>
-            {% endfor %}
+    <div class="w-full max-w-2xl mb-4 relative z-10">
+        <div class="bg-white shadow-md rounded-lg p-4">
+            <div class="flex justify-between mb-2">
+                <span class="text-sm md:text-base font-medium text-gray-700">{% trans "Прогресс" %}: {{ current_question }} / {{ total_questions }}</span>
+                <span class="text-sm md:text-base font-medium text-gray-700">{% trans "Отвечено" %}: {{ answers|length }} / {{ total_questions }}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                     style="width: {% widthratio answers|length total_questions 100 %}%;"></div>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1 justify-center">
+                {% for q in question_list %}
+                    <a href="?lang={{ current_language }}&q={{ forloop.counter }}"
+                       class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-200 progress-item
+                            {% if forloop.counter == current_question %}
+                                bg-blue-500 text-white ring-2 ring-blue-700
+                            {% elif answers|dict_key:'answer_'|add:q.id|stringformat:'s' %}
+                                bg-blue-600 text-white hover:bg-blue-700
+                            {% else %}
+                                bg-gray-300 text-gray-700 hover:bg-gray-400
+                            {% endif %}"
+                       data-question="{{ q.id }}"
+                       title="{% trans 'Вопрос' %} {{ forloop.counter }}">
+                        {{ forloop.counter }}
+                    </a>
+                {% endfor %}
+            </div>
         </div>
     </div>
-</div>
+
     <!-- Question -->
     {% if question %}
-    <div class="w-full max-w-2xl bg-white shadow-2xl rounded-xl p-4 md:p-6">
+    <div class="w-full max-w-2xl bg-white shadow-2xl rounded-xl p-4 md:p-6 relative z-10">
         <h2 class="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-900 border-b-2 border-blue-200 pb-2">
-            Тест {{ current_question }}: {{ question.text }}
+            {% trans "Тест" %} {{ current_question }}: {{ question.text }}
         </h2>
 
         <form id="quizForm" method="POST" action="{% url 'home' %}">
@@ -117,39 +132,40 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                    <p class="text-red-500 text-center font-semibold text-base md:text-lg">Для этого вопроса нет вариантов ответов</p>
+                    <p class="text-red-500 text-center font-semibold text-base md:text-lg">{% trans "Для этого вопроса нет вариантов ответов" %}</p>
                 {% endif %}
             {% endwith %}
             </fieldset>
             <!-- Кнопка для ручной отправки на последнем вопросе -->
             {% if current_question == total_questions %}
-            <button type="submit" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Завершить тест</button>
+            <button type="submit" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{% trans "Завершить тест" %}</button>
             {% endif %}
-
-            <!-- Модальное окно подтверждения -->
         </form>
     </div>
 
-    <!-- Navigation (без изменений) -->
-    <div class="w-full max-w-2xl mt-4 md:mt-6 flex justify-between items-center">
+    <!-- Navigation -->
+    <div class="w-full max-w-2xl mt-4 md:mt-6 flex justify-between items-center relative z-10">
         <a href="?lang={{current_language}}&q={{current_question|add:-1}}"
            class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == 1 %}opacity-50 cursor-not-allowed{% endif %}">
-            Предыдущий
+            {% trans "Предыдущий" %}
         </a>
         <span class="text-lg md:text-xl font-medium text-gray-700">{{ current_question }} / {{ total_questions }}</span>
         <a href="?lang={{current_language}}&q={{current_question|add:1}}"
            class="px-4 py-2 md:px-6 md:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold {% if current_question == total_questions %}opacity-50 cursor-not-allowed{% endif %}">
-            Следующий
+            {% trans "Следующий" %}
         </a>
     </div>
     {% else %}
-        <p class="text-gray-500 text-center text-lg md:text-xl">Вопросы отсутствуют.</p>
+        <p class="text-gray-500 text-center text-lg md:text-xl relative z-10">{% trans "Вопросы отсутствуют." %}</p>
     {% endif %}
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
         const totalTime = 3600; // 1 час в секундах
+        const timeExpiredText = "{% trans 'Время истекло!' %}";
+        const finishTestPrompt = "{% trans 'Время истекло. Завершите тест, нажав на кнопку Завершить тест.' %}";
+        const noAnswersPrompt = "{% trans 'Вы не ответили ни на один вопрос. Тест не будет отправлен.' %}";
         const timerElement = document.getElementById('timer');
         const form = document.getElementById('quizForm');
         const radios = document.querySelectorAll('input[type="radio"]');
@@ -185,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             } else {
                 clearInterval(timer);
-                timerElement.textContent = "Время истекло!";
+                timerElement.textContent = timeExpiredText;
                 timerElement.classList.add('text-red-600');
                 const hasAnswers = Object.keys({% if answers %}{{ answers|safe }}{% else %}{}{% endif %}).length > 0;
                 if (hasAnswers) {
-                    alert("Время истекло. Завершите тест, нажав на кнопку 'Завершить тест'.");
+                    alert(finishTestPrompt);
                 } else {
-                    alert("Вы не ответили ни на один вопрос. Тест не будет отправлен.");
+                    alert(noAnswersPrompt);
                 }
             }
         };

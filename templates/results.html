@@ -1,19 +1,20 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex flex-col items-center justify-start p-4">
     <div class="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Результаты теста</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">{% trans "Результаты теста" %}</h1>
 
         <!-- Общий результат -->
         <div class="mb-6">
             <p class="text-xl font-semibold text-gray-700">
-                Ваш результат: <span class="text-blue-600">{{ score|floatformat:0 }}</span> из 50
+                {% trans "Ваш результат" %}: <span class="text-blue-600">{{ score|floatformat:0 }}</span> {% trans "из" %} 50
             </p>
             <p class="text-lg text-gray-600">
-                Ваш балл: <b>{{ total_score|floatformat:0 }}</b>
+                {% trans "Ваш балл" %}: <b>{{ total_score|floatformat:0 }}</b>
                 <br>
-                Всего вопросов: {{ total_questions }}
+                {% trans "Всего вопросов" %}: {{ total_questions }}
             </p>
         </div>
 
@@ -24,22 +25,22 @@
             <div class="p-4 bg-gray-50 rounded-lg shadow-sm">
                 <p class="text-lg font-medium text-gray-800">{{ answer.question_text }}</p>
                 <p class="text-base">
-                    Ваш ответ: <span class="font-semibold {% if answer.is_correct %}text-green-600{% else %}text-red-600{% endif %}">{{ answer.user_answer|upper }}</span>
+                    {% trans "Ваш ответ" %}: <span class="font-semibold {% if answer.is_correct %}text-green-600{% else %}text-red-600{% endif %}">{{ answer.user_answer|upper }}</span>
                 </p>
                 <p class="text-base">
-                    Правильный ответ: <span class="font-semibold text-green-600">{{ answer.correct_answer|upper }}</span>
+                    {% trans "Правильный ответ:" %} <span class="font-semibold text-green-600">{{ answer.correct_answer|upper }}</span>
                 </p>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-gray-500 text-lg">Вы не ответили ни на один вопрос.</p>
+        <p class="text-gray-500 text-lg">{% trans "Вы не ответили ни на один вопрос." %}</p>
         {% endif %}
 
         <!-- Кнопка возврата -->
         <div class="mt-6">
             <a href="{% url 'home' %}?lang={{ current_language }}&timer_reset=true" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Начать заново
+                {% trans "Начать заново" %}
             </a>
         </div>
     </div>

@@ -10,7 +10,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 import time
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from django.utils import timezone
+from django.utils.translation import activate
 from docx import Document
 from django.db.models import Q
 from openpyxl import Workbook
@@ -137,8 +139,11 @@ def student_logout(request):
 
 @login_required
 def quiz_list(request):
+    # Получаем язык из сессии и активируем его
+    language = request.session.get('language', 'uz')  # По умолчанию 'uz'
+    activate(language)  # Активируем язык для текущего запроса
+
     quiz_questions_ids = request.session.get('quiz_questions', [])
-    language = request.session.get('language', 'uz')
     if not quiz_questions_ids:
         return redirect("verify_unique_code")
 
@@ -185,12 +190,14 @@ def quiz_list(request):
             answer = submitted_answers.get(q_id, None)
             choice = q.choices.first()
             if choice:
-                correct_answer = choice.is_correct
-                is_correct = (answer == correct_answer) if answer else False
+                correct_answer = choice.is_correct.lower()
+                normalized_answer = answer.lower() if answer else None
+                is_correct = normalized_answer == correct_answer if answer else False
+
                 user_answers.append({
                     'question_text': q.text,
-                    'user_answer': answer if answer else "Не отвечено",
-                    'correct_answer': correct_answer,
+                    'user_answer': normalized_answer.upper() if normalized_answer else _("Не отвечено"),
+                    'correct_answer': correct_answer.upper(),
                     'is_correct': is_correct
                 })
                 if is_correct:
