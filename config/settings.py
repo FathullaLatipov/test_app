@@ -36,6 +36,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'config.middleware.ForceAdminLocaleMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -151,6 +152,7 @@ JAZZMIN_SETTINGS = {
     "copyright": "PCS",
     "user_avatar": None,
     "custom_css": "css/custom.css",  # Подключаем кастомный CSS
+    "show_language_buttons": True,
 }
 # AUTHENTICATION_BACKENDS = [
 #     'user.auth_backend.StudentAuthBackend',  # Замените 'your_app' на имя приложения

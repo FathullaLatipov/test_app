@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Define the project name and root directory
-PROJECT_NAME=TukTuk
+PROJECT_NAME=test_app
 PROJECT_ROOT=/var/www/$PROJECT_NAME
 
 # Define the Python version and virtual environment path
-PYTHON_VERSION=9
+PYTHON_VERSION=11
 VENV_PATH=$PROJECT_ROOT/venv
 
 # Define the Nginx configuration file path
@@ -57,7 +57,7 @@ python3 manage.py migrate
 sudo tee $NGINX_CONF > /dev/null <<EOF
 server {
     listen 80;
-    server_name 85.209.2.34;
+    server_name 139.28.223.99;
 
     location = /favicon.ico { access_log off; log_not_found off; }
     location /static/ {
